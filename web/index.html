@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>apeXion Digitals | Web Downloader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="background">
+    <div class="orb orb-one"></div>
+    <div class="orb orb-two"></div>
+    <div class="orb orb-three"></div>
+  </div>
+
+  <main class="page">
+    <header class="hero">
+      <p class="tag">apeXion Digitals</p>
+      <h1>Download media fast, right from your browser.</h1>
+      <p class="sub">Paste a link, pick a quality, and let the worker handle the heavy lifting. Designed for a quick Vercel drop-in.</p>
+      <div class="cta-row">
+        <button class="btn primary" id="get-started">Start Download</button>
+        <button class="btn ghost" id="demo-run">Run Demo</button>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Web Downloader</p>
+          <h2>One link. One click.</h2>
+          <p class="muted">Mocked for now — wire the API to your own yt-dlp/ytdl-core backend when ready.</p>
+        </div>
+        <div class="platforms">
+          <span>Supported</span>
+          <div class="chips">
+            <span class="chip">YouTube</span>
+            <span class="chip">TikTok</span>
+            <span class="chip">Instagram</span>
+            <span class="chip">Reels</span>
+            <span class="chip">More</span>
+          </div>
+        </div>
+      </div>
+
+      <form class="form" id="download-form">
+        <label class="field">
+          <span>Media URL</span>
+          <div class="input-row">
+            <input type="url" name="url" id="url" placeholder="https://example.com/video" required />
+            <button type="submit" class="btn primary">Fetch</button>
+          </div>
+        </label>
+
+        <label class="field">
+          <span>Quality</span>
+          <div class="select">
+            <select id="quality">
+              <option value="best">Best available</option>
+              <option value="1080p">1080p</option>
+              <option value="720p">720p</option>
+              <option value="480p">480p</option>
+            </select>
+          </div>
+        </label>
+      </form>
+
+      <div class="status" id="status">
+        <div class="status-text">
+          <p class="muted">Status</p>
+          <h3 id="status-head">Idle</h3>
+          <p class="muted" id="status-body">Waiting for input.</p>
+        </div>
+        <div class="progress">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
+    </section>
+
+    <section class="cards">
+      <article class="card">
+        <p class="eyebrow">Deploy Fast</p>
+        <h3>Drop into Vercel</h3>
+        <p>Static-first. Mock API routes live in /api for serverless wiring. No build step required.</p>
+      </article>
+      <article class="card">
+        <p class="eyebrow">Bring your backend</p>
+        <h3>Swap mocks for real</h3>
+        <p>Replace the mock handlers with yt-dlp or ytdl-core logic. The front-end already expects JSON updates.</p>
+      </article>
+      <article class="card">
+        <p class="eyebrow">UX tuned</p>
+        <h3>Bold, legible, responsive</h3>
+        <p>Space Grotesk + Inter, animated gradients, and smooth progress transitions that feel intentional.</p>
+      </article>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
