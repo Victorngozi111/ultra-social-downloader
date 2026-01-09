@@ -3,7 +3,6 @@ const statusHead = document.getElementById('status-head');
 const statusBody = document.getElementById('status-body');
 const logEl = document.getElementById('log');
 const progressBar = document.getElementById('progress-bar');
-const demoBtn = document.getElementById('demo-run');
 const startBtn = document.getElementById('get-started');
 
 function log(line) {
@@ -20,7 +19,7 @@ function setStatus(title, body) {
 }
 
 function setProgress(percent) {
-  progressBar.style.width = `${percent}%`;
+  progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
 }
 
 async function fetchInfo(url, quality) {
@@ -61,12 +60,13 @@ form?.addEventListener('submit', async (e) => {
 
   setStatus('Fetching info', 'Talking to the downloader…');
   log(`Requested: ${url} (${quality})`);
-  mockProgress();
+  setProgress(10);
 
   try {
     const info = await fetchInfo(url, quality);
     setStatus('Ready', info.message || 'Metadata received.');
     log(`Info: ${info.title} (${info.duration || 'n/a'})`);
+    setProgress(40);
 
     const dl = await startDownload(url, quality);
     setStatus('Complete', dl.message || 'Download finished.');
@@ -78,11 +78,6 @@ form?.addEventListener('submit', async (e) => {
     log(`Error: ${err.message || 'request failed'}`);
     setProgress(0);
   }
-});
-
-demoBtn?.addEventListener('click', () => {
-  document.getElementById('url').value = 'https://youtu.be/demo';
-  form.dispatchEvent(new Event('submit'));
 });
 
 startBtn?.addEventListener('click', () => {

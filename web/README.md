@@ -21,3 +21,7 @@ npx serve web
 ## Hooking up your worker
 - POST `/info` and `/download` to your worker; it should return JSON with fields like `title`, `duration`, `file`, `message`.
 - Keep yt-dlp/ffmpeg on the worker side; Vercel functions just proxy.
+
+## Worker hosting ideas
+- Render (Web Service) with Python + yt-dlp + ffmpeg
+- Fly.io, Railway, or a small VPS—anything that lets you install yt-dlp/ffmpeg
