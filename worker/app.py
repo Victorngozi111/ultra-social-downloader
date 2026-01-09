@@ -54,6 +54,7 @@ async def info(payload: InfoRequest):
         "duration": data.get("duration"),
         "thumbnail": data.get("thumbnail"),
         "uploader": data.get("uploader"),
+        "description": data.get("description"),
         "message": "Metadata fetched",
     }
 

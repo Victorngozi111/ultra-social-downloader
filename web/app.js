@@ -6,6 +6,9 @@ const progressBar = document.getElementById('progress-bar');
 const startBtn = document.getElementById('get-started');
 const downloadBtn = document.getElementById('download-btn');
 const downloadAction = document.getElementById('download-action');
+const descriptionBlock = document.getElementById('description-block');
+const descriptionText = document.getElementById('description-text');
+const copyDescriptionBtn = document.getElementById('copy-description');
 
 function log(line) {
   const p = document.createElement('p');
@@ -22,6 +25,16 @@ function setStatus(title, body) {
 
 function setProgress(percent) {
   progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+}
+
+function setDescription(text) {
+  if (text) {
+    descriptionText.value = text;
+    descriptionBlock.style.display = 'flex';
+  } else {
+    descriptionText.value = '';
+    descriptionBlock.style.display = 'none';
+  }
 }
 
 function setDownloadLink(url) {
@@ -74,11 +87,13 @@ form?.addEventListener('submit', async (e) => {
   log(`Requested: ${url} (${quality})`);
   setProgress(10);
   setDownloadLink(null);
+  setDescription(null);
 
   try {
     const info = await fetchInfo(url, quality);
     setStatus('Ready', info.message || 'Metadata received.');
     log(`Info: ${info.title} (${info.duration || 'n/a'})`);
+    if (info.description) setDescription(info.description);
     setProgress(40);
 
     const dl = await startDownload(url, quality);
@@ -95,9 +110,22 @@ form?.addEventListener('submit', async (e) => {
     log(`Error: ${err.message || 'request failed'}`);
     setProgress(0);
     setDownloadLink(null);
+    setDescription(null);
   }
 });
 
 startBtn?.addEventListener('click', () => {
   document.getElementById('url').focus();
+});
+
+copyDescriptionBtn?.addEventListener('click', async () => {
+  if (!descriptionText.value) return;
+  try {
+    await navigator.clipboard.writeText(descriptionText.value);
+    copyDescriptionBtn.textContent = 'Copied';
+    setTimeout(() => (copyDescriptionBtn.textContent = 'Copy'), 1200);
+  } catch (e) {
+    copyDescriptionBtn.textContent = 'Failed';
+    setTimeout(() => (copyDescriptionBtn.textContent = 'Copy'), 1200);
+  }
 });
