@@ -5,6 +5,7 @@ const logEl = document.getElementById('log');
 const progressBar = document.getElementById('progress-bar');
 const startBtn = document.getElementById('get-started');
 const downloadBtn = document.getElementById('download-btn');
+const downloadBtnImage = document.getElementById('download-btn-image');
 const downloadAction = document.getElementById('download-action');
 const descriptionBlock = document.getElementById('description-block');
 const descriptionText = document.getElementById('description-text');
@@ -40,9 +41,11 @@ function setDescription(text) {
 function setDownloadLink(url) {
   if (url) {
     downloadBtn.href = url;
+    downloadBtnImage.href = url;
     downloadAction.style.display = 'flex';
   } else {
     downloadBtn.removeAttribute('href');
+    downloadBtnImage.removeAttribute('href');
     downloadAction.style.display = 'none';
   }
 }
