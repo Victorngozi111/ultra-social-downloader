@@ -29,10 +29,15 @@ class DownloadRequest(BaseModel):
 def _ydl_opts(quality: Optional[str]) -> dict:
     # Adjust formats to your needs; ffmpeg must be available on the worker host.
     fmt = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best"
-    if quality and quality.lower() != "best":
-        # Non-strict quality hint; falls back to best if unavailable.
-        q = quality.replace("p", "")
-        fmt = f"bv*[height<={q}]+ba/b[height<={q}]/{fmt}"
+
+    # Normalize the quality hint; ignore "best" and any non-numeric noise.
+    if quality:
+        normalized = str(quality).strip().lower()
+        if normalized and normalized != "best":
+            # Extract digits only (e.g., "1080p" -> "1080"); fall back to best if nothing usable.
+            q = "".join(ch for ch in normalized if ch.isdigit())
+            if q:
+                fmt = f"bv*[height<={q}]+ba/b[height<={q}]/{fmt}"
     return {
         "format": fmt,
         "noplaylist": True,
