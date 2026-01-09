@@ -17,6 +17,13 @@ module.exports = async (req, res) => {
     });
 
     const data = await upstream.json();
+
+    // If worker didn't return a download_url, synthesize one when file is present.
+    if (!data.download_url && data.file) {
+      const encoded = encodeURIComponent(data.file);
+      data.download_url = `${WORKER_URL}/files/${encoded}`;
+    }
+
     return res.status(upstream.ok ? 200 : upstream.status).json(data);
   } catch (err) {
     return res.status(502).json({ error: 'Upstream download request failed', detail: String(err) });
