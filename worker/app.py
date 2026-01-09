@@ -5,9 +5,13 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, HttpUrl
 import yt_dlp
+
+TMP_DIR = Path(tempfile.gettempdir()) / "apexion_dl"
+TMP_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="apeXion Downloader Worker")
 
@@ -54,14 +58,12 @@ async def info(payload: InfoRequest):
 
 
 @app.post("/download")
-async def download(payload: DownloadRequest):
+async def download(payload: DownloadRequest, request: Request):
     opts = _ydl_opts(payload.quality)
-    tmp_dir = Path(tempfile.gettempdir()) / "apexion_dl"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
 
     # Save to temp; in production, upload to object storage and return a signed URL.
     opts.update({
-        "outtmpl": str(tmp_dir / "%(title)s.%(ext)s"),
+        "outtmpl": str(TMP_DIR / "%(title)s.%(ext)s"),
     })
 
     try:
@@ -71,16 +73,32 @@ async def download(payload: DownloadRequest):
         raise HTTPException(status_code=400, detail=f"Download failed: {exc}")
 
     # Pick the newest file in the temp dir as the result.
-    candidates = sorted(tmp_dir.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True)
+    candidates = sorted(TMP_DIR.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True)
     if not candidates:
         raise HTTPException(status_code=500, detail="No file produced")
 
     file_path = candidates[0]
+    # Build a download URL that serves from this worker.
+    base_url = str(request.base_url).rstrip("/")
+    download_url = f"{base_url}/files/{file_path.name}"
+
     return {
         "file": file_path.name,
         "path": str(file_path),
-        "message": "Download finished. Upload this file to storage and return a signed URL in production.",
+        "download_url": download_url,
+        "message": "Download ready.",
     }
+
+
+@app.get("/files/{filename}")
+async def serve_file(filename: str):
+    # Prevent path traversal
+    safe_path = (TMP_DIR / filename).resolve()
+    if not str(safe_path).startswith(str(TMP_DIR.resolve())):
+        raise HTTPException(status_code=400, detail="Invalid file path")
+    if not safe_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(safe_path)
 
 
 @app.get("/")

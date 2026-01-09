@@ -4,6 +4,8 @@ const statusBody = document.getElementById('status-body');
 const logEl = document.getElementById('log');
 const progressBar = document.getElementById('progress-bar');
 const startBtn = document.getElementById('get-started');
+const downloadBtn = document.getElementById('download-btn');
+const downloadAction = document.getElementById('download-action');
 
 function log(line) {
   const p = document.createElement('p');
@@ -20,6 +22,16 @@ function setStatus(title, body) {
 
 function setProgress(percent) {
   progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+}
+
+function setDownloadLink(url) {
+  if (url) {
+    downloadBtn.href = url;
+    downloadAction.style.display = 'flex';
+  } else {
+    downloadBtn.removeAttribute('href');
+    downloadAction.style.display = 'none';
+  }
 }
 
 async function fetchInfo(url, quality) {
@@ -61,6 +73,7 @@ form?.addEventListener('submit', async (e) => {
   setStatus('Fetching info', 'Talking to the downloader…');
   log(`Requested: ${url} (${quality})`);
   setProgress(10);
+  setDownloadLink(null);
 
   try {
     const info = await fetchInfo(url, quality);
@@ -71,12 +84,14 @@ form?.addEventListener('submit', async (e) => {
     const dl = await startDownload(url, quality);
     setStatus('Complete', dl.message || 'Download finished.');
     log(`Result: ${dl.file || 'download ready'}`);
+    setDownloadLink(dl.download_url || null);
     setProgress(100);
   } catch (err) {
     console.error(err);
     setStatus('Error', err.message || 'Request failed');
     log(`Error: ${err.message || 'request failed'}`);
     setProgress(0);
+    setDownloadLink(null);
   }
 });
 
