@@ -84,6 +84,9 @@ form?.addEventListener('submit', async (e) => {
     const dl = await startDownload(url, quality);
     setStatus('Complete', dl.message || 'Download finished.');
     log(`Result: ${dl.file || 'download ready'}`);
+    if (dl.download_url) {
+      log(`Download URL: ${dl.download_url}`);
+    }
     setDownloadLink(dl.download_url || null);
     setProgress(100);
   } catch (err) {

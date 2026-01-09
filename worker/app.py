@@ -29,9 +29,10 @@ class DownloadRequest(BaseModel):
 def _ydl_opts(quality: Optional[str]) -> dict:
     # Adjust formats to your needs; ffmpeg must be available on the worker host.
     fmt = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best"
-    if quality:
+    if quality and quality.lower() != "best":
         # Non-strict quality hint; falls back to best if unavailable.
-        fmt = f"bv*[height<={quality.replace('p','')}]+ba/b[height<={quality.replace('p','')}]/{fmt}"
+        q = quality.replace("p", "")
+        fmt = f"bv*[height<={q}]+ba/b[height<={q}]/{fmt}"
     return {
         "format": fmt,
         "noplaylist": True,
