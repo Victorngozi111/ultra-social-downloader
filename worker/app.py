@@ -4,6 +4,7 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Optional
+import re
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -55,6 +56,13 @@ def _ydl_opts(quality: Optional[str]) -> dict:
     }
 
 
+def _safe_filename(raw: str) -> str:
+    """Generate a safe, deterministic filename component."""
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", raw or "file")
+    cleaned = cleaned.strip("._-") or "file"
+    return cleaned[:120]
+
+
 @app.post("/info")
 async def info(payload: InfoRequest):
     # Use safest defaults for metadata to reduce extractor-specific issues.
@@ -79,9 +87,11 @@ async def info(payload: InfoRequest):
 async def download(payload: DownloadRequest, request: Request):
     opts = _ydl_opts(payload.quality)
 
-    # Save to temp; in production, upload to object storage and return a signed URL.
+    # Force a predictable, safe filename: use video id when available; fallback to slugged title.
+    out_id = "%(id)s"
+    out_title = "%(title)s"
     opts.update({
-        "outtmpl": str(TMP_DIR / "%(title)s.%(ext)s"),
+        "outtmpl": str(TMP_DIR / f"{out_id}.%(ext)s"),
     })
 
     try:
@@ -96,6 +106,28 @@ async def download(payload: DownloadRequest, request: Request):
         raise HTTPException(status_code=500, detail="No file produced")
 
     file_path = candidates[0]
+
+    # Build a user-friendly filename for download (prefer title if present).
+    friendly_name = file_path.name
+    try:
+        # If yt_dlp stored the id-based filename, try to swap to a safe, title-based name for the download URL.
+        with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+            info = ydl.extract_info(str(payload.url), download=False)
+            title = info.get("title") if isinstance(info, dict) else None
+            if title:
+                safe_title = _safe_filename(title)
+                friendly_name = f"{safe_title}{file_path.suffix}"
+                safe_target = TMP_DIR / friendly_name
+                if safe_target != file_path:
+                    try:
+                        if safe_target.exists():
+                            safe_target.unlink()
+                        file_path.rename(safe_target)
+                        file_path = safe_target
+                    except Exception:
+                        pass
+    except Exception:
+        pass
     # Build a download URL that serves from this worker.
     base_url = str(request.base_url).rstrip("/")
     download_url = f"{base_url}/files/{file_path.name}"
@@ -116,7 +148,7 @@ async def serve_file(filename: str):
         raise HTTPException(status_code=400, detail="Invalid file path")
     if not safe_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(safe_path)
+    return FileResponse(safe_path, filename=safe_path.name)
 
 
 @app.get("/")
