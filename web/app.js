@@ -117,6 +117,9 @@ form?.addEventListener('submit', async (e) => {
     if (dl.download_url) {
       log(`Download URL: ${dl.download_url}`);
     }
+    if (!dl.download_url) {
+      log('No download URL returned by worker.');
+    }
     setDownloadLink(dl.download_url || null);
     setProgress(100);
   } catch (err) {
