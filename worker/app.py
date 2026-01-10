@@ -36,7 +36,15 @@ class DownloadRequest(BaseModel):
     quality: Optional[str] = None
 
 
-def _ydl_opts(quality: Optional[str]) -> dict:
+def _ydl_opts(quality: Optional[str], source_url: Optional[str] = None) -> dict:
+    # Build domain-aware headers so sites like Pinterest respect the request.
+    headers = DEFAULT_HEADERS.copy()
+    if source_url:
+        try:
+            # Use the source URL as referer when available to appease origin checks.
+            headers["Referer"] = str(source_url)
+        except Exception:
+            pass
     # Prefer widely supported H.264/AAC in an MP4 container to avoid "codec not supported" issues.
     height_clause = ""
     if quality:
@@ -58,7 +66,7 @@ def _ydl_opts(quality: Optional[str]) -> dict:
         "merge_output_format": "mp4",
         "noplaylist": True,
         "quiet": True,
-        "http_headers": DEFAULT_HEADERS,
+        "http_headers": headers,
         # Force safe filenames from yt-dlp to avoid spaces/hashtags breaking /files/ serving.
         "restrictfilenames": True,
         "windowsfilenames": True,
@@ -75,7 +83,7 @@ def _safe_filename(raw: str) -> str:
 @app.post("/info")
 async def info(payload: InfoRequest):
     # Use safest defaults for metadata to reduce extractor-specific issues.
-    opts = _ydl_opts(None)
+    opts = _ydl_opts(None, payload.url)
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             data = ydl.extract_info(str(payload.url), download=False)
@@ -95,7 +103,7 @@ async def info(payload: InfoRequest):
 @app.post("/download")
 async def download(payload: DownloadRequest, request: Request):
     # Step 1: fetch metadata to derive a safe base name.
-    info_opts = _ydl_opts(None)
+    info_opts = _ydl_opts(None, payload.url)
     try:
         with yt_dlp.YoutubeDL(info_opts) as ydl:
             info = ydl.extract_info(str(payload.url), download=False)
@@ -105,7 +113,7 @@ async def download(payload: DownloadRequest, request: Request):
     base_name = _safe_filename(info.get("title") or info.get("id") or "download")
 
     # Step 2: download with a deterministic, safe filename.
-    dl_opts = _ydl_opts(payload.quality)
+    dl_opts = _ydl_opts(payload.quality, payload.url)
     dl_opts.update({
         "outtmpl": str(TMP_DIR / f"{base_name}.%(ext)s"),
     })
