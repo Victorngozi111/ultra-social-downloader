@@ -37,19 +37,25 @@ class DownloadRequest(BaseModel):
 
 
 def _ydl_opts(quality: Optional[str]) -> dict:
-    # Adjust formats to your needs; ffmpeg must be available on the worker host.
-    fmt = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best"
-
-    # Normalize the quality hint; ignore "best" and any non-numeric noise.
+    # Prefer widely supported H.264/AAC in an MP4 container to avoid "codec not supported" issues.
+    height_clause = ""
     if quality:
         normalized = str(quality).strip().lower()
         if normalized and normalized != "best":
-            # Extract digits only (e.g., "1080p" -> "1080"); fall back to best if nothing usable.
             q = "".join(ch for ch in normalized if ch.isdigit())
             if q:
-                fmt = f"bv*[height<={q}]+ba/b[height<={q}]/{fmt}"
+                height_clause = f"[height<={q}]"
+
+    fmt = (
+        f"bv*[ext=mp4][vcodec^=avc1]{height_clause}+ba[ext=m4a]/"
+        f"bv*[ext=mp4]{height_clause}+ba[ext=m4a]/"
+        f"b[ext=mp4]{height_clause}/"
+        "best[ext=mp4]/best"
+    )
+
     return {
         "format": fmt,
+        "merge_output_format": "mp4",
         "noplaylist": True,
         "quiet": True,
         "http_headers": DEFAULT_HEADERS,
