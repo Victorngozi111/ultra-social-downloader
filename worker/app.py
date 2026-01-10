@@ -10,6 +10,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, HttpUrl
 import yt_dlp
+import shutil
+import uuid
 
 TMP_DIR = Path(tempfile.gettempdir()) / "apexion_dl"
 TMP_DIR.mkdir(parents=True, exist_ok=True)
@@ -92,6 +94,13 @@ def _safe_filename(raw: str) -> str:
     return cleaned[:120]
 
 
+def _session_dir() -> Path:
+    # Keep each download in its own folder to avoid cross-talk between parallel downloads.
+    path = TMP_DIR / f"job_{uuid.uuid4().hex[:12]}"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 @app.post("/info")
 async def info(payload: InfoRequest):
     # Use safest defaults for metadata to reduce extractor-specific issues.
@@ -136,9 +145,10 @@ async def download(payload: DownloadRequest, request: Request):
     is_video = _is_video(info)
 
     # Step 2: download with a deterministic, safe filename.
+    job_dir = _session_dir()
     dl_opts = _ydl_opts(payload.quality, payload.url, is_video=is_video)
     dl_opts.update({
-        "outtmpl": str(TMP_DIR / f"{base_name}.%(ext)s"),
+        "outtmpl": str(job_dir / f"{base_name}.%(ext)s"),
     })
 
     try:
@@ -147,8 +157,9 @@ async def download(payload: DownloadRequest, request: Request):
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Download failed: {exc}")
 
-    # Pick the newest file in the temp dir as the result.
-    candidates = sorted(TMP_DIR.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True)
+    # Pick the newest actual media file in the job dir as the result (avoids mixing outputs across requests).
+    candidates = [p for p in job_dir.glob("*") if p.is_file()]
+    candidates = sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)
     if not candidates:
         raise HTTPException(status_code=500, detail="No file produced")
 
